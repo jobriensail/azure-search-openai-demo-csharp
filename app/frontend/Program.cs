@@ -11,7 +11,8 @@ builder.Services.Configure<AppSettings>(
     builder.Configuration.GetSection(nameof(AppSettings)));
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
-    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+    var backendUrl = builder.Configuration["BACKEND_URI"] ?? builder.HostEnvironment.BaseAddress;
+    client.BaseAddress = new Uri(backendUrl);
 });
 builder.Services.AddScoped<OpenAIPromptQueue>();
 builder.Services.AddLocalStorageServices();
