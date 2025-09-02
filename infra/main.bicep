@@ -351,6 +351,7 @@ module web './app/web.bicep' = {
     serviceBinds: []
     serviceBusNamespaceName: enableQueueProcessing ? '${abbrs.serviceBusNamespaces}${resourceToken}' : ''
     serviceBusQueueName: enableQueueProcessing ? documentProcessingQueueName : ''
+    serviceBusConnectionString: enableQueueProcessing ? serviceBus.outputs.serviceBusConnectionString : ''
   }
 }
 
@@ -763,8 +764,21 @@ module serviceBus 'core/messaging/servicebus.bicep' = if (enableQueueProcessing)
     location: location
     tags: updatedTags
     skuName: serviceBusSkuName
-    principalId: web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
     queueName: documentProcessingQueueName
+  }
+}
+
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2025-05-01-preview' existing = if (enableQueueProcessing) {
+  name: serviceBus.outputs.serviceBusNamespaceName
+}
+
+module serviceBusRoleBackend 'core/security/role.bicep' = if (enableQueueProcessing) {
+  scope: serviceBusNamespace
+  name: 'servicebus-role-backend'
+  params: {
+    principalId: web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '090c5cfd-751d-490a-894a-3ce6f1109419'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -813,3 +827,4 @@ output AZURE_OPENAI_CHATGPT_MODEL_NAME string = azureOpenAIChatGptModelName
 output AZURE_SERVICE_BUS_NAMESPACE string = enableQueueProcessing ? serviceBus.outputs.serviceBusNamespaceName : ''
 output AZURE_SERVICE_BUS_ENDPOINT string = enableQueueProcessing ? serviceBus.outputs.serviceBusEndpoint : ''
 output AZURE_SERVICE_BUS_QUEUE_NAME string = enableQueueProcessing ? serviceBus.outputs.documentProcessingQueueName : ''
+output AZURE_SERVICE_BUS_CONNECTION_STRING string = enableQueueProcessing ? serviceBus.outputs.serviceBusConnectionString : ''

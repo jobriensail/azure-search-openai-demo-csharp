@@ -88,6 +88,12 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ServiceBusClient>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
+            var connectionString = config["AZURE_SERVICE_BUS_CONNECTION_STRING"];
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                return new ServiceBusClient(connectionString);
+            }
+
             var serviceBusNamespace = config["AZURE_SERVICE_BUS_NAMESPACE"];
             ArgumentNullException.ThrowIfNullOrEmpty(serviceBusNamespace);
             return new ServiceBusClient($"{serviceBusNamespace}.servicebus.windows.net", s_azureCredential);
