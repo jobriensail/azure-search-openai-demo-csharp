@@ -65,6 +65,12 @@ param openAiApiKey string
 @description('An array of service binds')
 param serviceBinds array
 
+@description('Service Bus namespace name')
+param serviceBusNamespaceName string = ''
+
+@description('Service Bus queue name')
+param serviceBusQueueName string = ''
+
 resource webIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
@@ -92,7 +98,7 @@ module app '../core/host/container-app-upsert.bicep' = {
     serviceBinds: serviceBinds
     containerAppsEnvironmentName: containerAppsEnvironmentName
     containerRegistryName: containerRegistryName
-    env: [
+    env: concat([
       {
         name: 'AZURE_CLIENT_ID'
         value: webIdentity.properties.clientId
@@ -149,7 +155,17 @@ module app '../core/host/container-app-upsert.bicep' = {
         name: 'OPENAI_API_KEY'
         value: openAiApiKey
       }
-    ]
+    ],
+    !empty(serviceBusNamespaceName) ? [
+      {
+        name: 'AZURE_SERVICE_BUS_NAMESPACE'
+        value: serviceBusNamespaceName
+      }
+      {
+        name: 'AZURE_SERVICE_BUS_QUEUE_NAME'
+        value: 'serviceBusQueueName'
+      }
+    ] : [])
     targetPort: 8080
   }
 }

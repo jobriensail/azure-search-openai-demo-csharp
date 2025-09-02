@@ -180,6 +180,16 @@ param openAiEmbeddingDeployment string
 @description('Use Vision retrieval. default: false')
 param useVision bool = false
 
+@description('Enable queue-based processing')
+param enableQueueProcessing bool = true
+
+@description('Service Bus SKU')
+@allowed(['Basic', 'Standard', 'Premium'])
+param serviceBusSkuName string = 'Standard'
+
+@description('Name of the Service Bus queue')
+param documentProcessingQueueName string = 'document-processing'
+
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
@@ -339,6 +349,8 @@ module web './app/web.bicep' = {
     openAiChatGptDeployment: useAOAI ? azureChatGptDeploymentName : ''
     openAiEmbeddingDeployment: useAOAI ? azureEmbeddingDeploymentName : ''
     serviceBinds: []
+    serviceBusNamespaceName: enableQueueProcessing ? '${abbrs.serviceBusNamespaces}${resourceToken}' : ''
+    serviceBusQueueName: enableQueueProcessing ? documentProcessingQueueName : ''
   }
 }
 
@@ -743,6 +755,19 @@ module visionRoleBackend 'core/security/role.bicep' = if (useVision) {
   }
 }
 
+module serviceBus 'core/messaging/servicebus.bicep' = if (enableQueueProcessing) {
+  name: 'servicebus'
+  scope: resourceGroup
+  params: {
+    name: '${abbrs.serviceBusNamespaces}${resourceToken}'
+    location: location
+    tags: updatedTags
+    skuName: serviceBusSkuName
+    principalId: web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
+    queueName: documentProcessingQueueName
+  }
+}
+
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output APPLICATIONINSIGHTS_NAME string = monitoring.outputs.applicationInsightsName
 output AZURE_USE_APPLICATION_INSIGHTS bool = useApplicationInsights
@@ -785,3 +810,6 @@ output USE_VISION bool = useVision
 output OPENAI_EMBEDDING_DEPLOYMENT string = openAiEmbeddingDeployment
 output AZURE_OPENAI_CHATGPT_MODEL_VERSION string = azureOpenAIChatGptModelVersion
 output AZURE_OPENAI_CHATGPT_MODEL_NAME string = azureOpenAIChatGptModelName
+output AZURE_SERVICE_BUS_NAMESPACE string = enableQueueProcessing ? serviceBus.outputs.serviceBusNamespaceName : ''
+output AZURE_SERVICE_BUS_ENDPOINT string = enableQueueProcessing ? serviceBus.outputs.serviceBusEndpoint : ''
+output AZURE_SERVICE_BUS_QUEUE_NAME string = enableQueueProcessing ? serviceBus.outputs.documentProcessingQueueName : ''
