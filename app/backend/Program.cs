@@ -11,13 +11,6 @@ builder.Configuration.ConfigureAzureKeyVault();
 
 builder.Services.AddSingleton(sp =>
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    var connectionString = config["AZURE_SERVICE_BUS_CONNECTION_STRING"];
-    if (!string.IsNullOrEmpty(connectionString))
-    {
-        return new ServiceBusClient(connectionString);
-    }
-
     var opts = sp.GetRequiredService<IOptions<ServiceBusWorkerOptions>>().Value;
     if (string.IsNullOrWhiteSpace(opts.Namespace))
     {

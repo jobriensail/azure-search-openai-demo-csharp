@@ -11,6 +11,9 @@ param tags object = {}
 @allowed(['Basic', 'Standard', 'Premium'])
 param skuName string = 'Standard'
 
+@description('Principal ID for MI access')
+param principalId string
+
 @description('The queue name')
 param queueName string = 'document-processing'
 
@@ -45,11 +48,16 @@ resource documentProcessingQueue 'Microsoft.ServiceBus/namespaces/queues@2024-01
   }
 }
 
+resource serviceBusDataOwnerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: serviceBusNamespace
+  name: guid(serviceBusNamespace.id, principalId, '090c5cfd-751d-490a-894a-3ce6f1109419')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419') 
+    principalId: principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 output serviceBusEndpoint string = serviceBusNamespace.properties.serviceBusEndpoint
 output serviceBusNamespaceName string = serviceBusNamespace.name
 output documentProcessingQueueName string = documentProcessingQueue.name
-@secure()
-output serviceBusConnectionString string = listKeys(
-  resourceId('Microsoft.ServiceBus/namespaces/authorizationRules', name, 'RootManageSharedAccessKey'),
-  '2017-04-01'
-).primaryConnectionString

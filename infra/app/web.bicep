@@ -71,10 +71,6 @@ param serviceBusNamespaceName string = ''
 @description('Service Bus queue name')
 param serviceBusQueueName string = ''
 
-@description('Service Bus connection string')
-@secure()
-param serviceBusConnectionString string = ''
-
 resource webIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
@@ -167,11 +163,7 @@ module app '../core/host/container-app-upsert.bicep' = {
       }
       {
         name: 'AZURE_SERVICE_BUS_QUEUE_NAME'
-        value: serviceBusQueueName
-      }
-      {
-        name: 'AZURE_SERVICE_BUS_CONNECTION_STRING'
-        value: serviceBusConnectionString
+        value: 'serviceBusQueueName'
       }
     ] : [])
     targetPort: 8080
